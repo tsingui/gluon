@@ -26,7 +26,7 @@ packages {
 	'kmod-hwmon-core',
 	'kmod-leds-gpio',
 	'kmod-leds-apu2',
-	'kmod-sp5100_tco',
+	'kmod-sp5100-tco',
 	'kmod-usb-core',
 	'kmod-usb-ohci',
 	'kmod-usb2',
