@@ -14,6 +14,8 @@ define mkabspath
    override $(1) := $(abspath $($(1)))
 endef
 
+escape = '$(subst ','\'',$(1))'
+
 GLUON_SITEDIR ?= site
 $(eval $(call mkabspath,GLUON_SITEDIR))
 
@@ -44,8 +46,13 @@ $(eval $(call mkabspath,GLUON_PATCHESDIR))
 GLUON_MULTIDOMAIN ?= 0
 GLUON_DEBUG ?= 0
 
-export GLUON_RELEASE GLUON_REGION GLUON_MULTIDOMAIN GLUON_DEBUG GLUON_DEPRECATED GLUON_DEVICES \
-	 GLUON_TARGETSDIR GLUON_PATCHESDIR GLUON_TMPDIR GLUON_IMAGEDIR GLUON_PACKAGEDIR
+GLUON_VARS = \
+	GLUON_RELEASE GLUON_REGION GLUON_MULTIDOMAIN GLUON_DEBUG GLUON_DEPRECATED GLUON_DEVICES \
+	GLUON_TARGETSDIR GLUON_PATCHESDIR GLUON_TMPDIR GLUON_IMAGEDIR GLUON_PACKAGEDIR \
+	GLUON_SITEDIR GLUON_RELEASE GLUON_BRANCH GLUON_LANGS BOARD SUBTARGET
+
+unexport $(GLUON_VARS)
+GLUON_ENV = $(foreach var,$(GLUON_VARS),$(var)=$(call escape,$($(var))))
 
 show-release:
 	@echo '$(GLUON_RELEASE)'
@@ -53,18 +60,20 @@ show-release:
 
 update: FORCE
 	@
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update.sh
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/patch.sh
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/feeds.sh
+	export $(GLUON_ENV)
+	scripts/update.sh
+	scripts/patch.sh
+	scripts/feeds.sh
 
 update-patches: FORCE
 	@
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update.sh
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update-patches.sh
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/patch.sh
+	export $(GLUON_ENV)
+	scripts/update.sh
+	scripts/update-patches.sh
+	scripts/patch.sh
 
 update-feeds: FORCE
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/feeds.sh
+	@$(GLUON_ENV) scripts/feeds.sh
 
 
 GLUON_TARGETS :=
@@ -83,14 +92,6 @@ OPENWRTMAKE = $(MAKE) -C openwrt
 
 BOARD := $(GLUON_TARGET_$(GLUON_TARGET)_BOARD)
 SUBTARGET := $(GLUON_TARGET_$(GLUON_TARGET)_SUBTARGET)
-
-GLUON_CONFIG_VARS := \
-	GLUON_SITEDIR='$(GLUON_SITEDIR)' \
-	GLUON_RELEASE='$(GLUON_RELEASE)' \
-	GLUON_BRANCH='$(GLUON_BRANCH)' \
-	GLUON_LANGS='$(GLUON_LANGS)' \
-	BOARD='$(BOARD)' \
-	SUBTARGET='$(SUBTARGET)'
 
 
 CheckTarget := [ '$(BOARD)' ] \
@@ -151,21 +152,21 @@ config: $(LUA) FORCE
 	$(CheckTarget)
 	$(foreach conf,site $(patsubst $(GLUON_SITEDIR)/%.conf,%,$(wildcard $(GLUON_SITEDIR)/domains/*.conf)),$(call CheckSite,$(conf)))
 
-	$(GLUON_CONFIG_VARS) \
+	$(GLUON_ENV) \
 		$(LUA) scripts/target_config.lua '$(GLUON_TARGET)' '$(GLUON_PACKAGES)' \
 		> openwrt/.config
 	$(OPENWRTMAKE) defconfig
 
-	$(GLUON_CONFIG_VARS) \
+	$(GLUON_ENV) \
 		$(LUA) scripts/target_config_check.lua '$(GLUON_TARGET)' '$(GLUON_PACKAGES)'
 
 
 all: config
 	+@
-	$(GLUON_CONFIG_VARS) \
+	$(GLUON_ENV) \
 		$(LUA) scripts/clean_output.lua
 	$(OPENWRTMAKE)
-	$(GLUON_CONFIG_VARS) \
+	$(GLUON_ENV) \
 		$(LUA) scripts/copy_output.lua '$(GLUON_TARGET)'
 
 clean download: config
@@ -184,6 +185,7 @@ manifest: $(LUA) FORCE
 	$(CheckExternal)
 
 	(
+		export $(GLUON_ENV)
 		echo 'BRANCH=$(GLUON_BRANCH)'
 		echo "DATE=$$($(LUA) scripts/rfc3339date.lua)"
 		echo 'PRIORITY=$(GLUON_PRIORITY)'
