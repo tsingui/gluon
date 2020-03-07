@@ -4,6 +4,8 @@ LC_ALL:=C
 LANG:=C
 export LC_ALL LANG
 
+.SHELLFLAGS = -ec
+
 # check for spaces & resolve possibly relative paths
 define mkabspath
    ifneq (1,$(words [$($(1))]))
@@ -50,14 +52,16 @@ show-release:
 
 
 update: FORCE
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update.sh
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/patch.sh
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/feeds.sh
+	@
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update.sh
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/patch.sh
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/feeds.sh
 
 update-patches: FORCE
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update.sh
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update-patches.sh
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/patch.sh
+	@
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update.sh
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/update-patches.sh
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/patch.sh
 
 update-feeds: FORCE
 	@GLUON_SITEDIR='$(GLUON_SITEDIR)' scripts/feeds.sh
@@ -95,7 +99,7 @@ CheckTarget := [ '$(BOARD)' ] \
 CheckExternal := test -d openwrt || (echo 'You don'"'"'t seem to have obtained the external repositories needed by Gluon; please call `make update` first!'; false)
 
 define CheckSite
-	@GLUON_SITEDIR='$(GLUON_SITEDIR)' GLUON_SITE_CONFIG='$(1).conf' $(LUA) -e 'assert(dofile("scripts/site_config.lua")(os.getenv("GLUON_SITE_CONFIG")))' \
+	GLUON_SITEDIR='$(GLUON_SITEDIR)' GLUON_SITE_CONFIG='$(1).conf' $(LUA) -e 'assert(dofile("scripts/site_config.lua")(os.getenv("GLUON_SITE_CONFIG")))' \
 		|| (echo 'Your site configuration ($(1).conf) did not pass validation.'; false)
 
 endef
@@ -131,61 +135,69 @@ $(eval $(call merge_packages,$(GLUON_DEFAULT_PACKAGES) $(GLUON_FEATURE_PACKAGES)
 LUA := openwrt/staging_dir/hostpkg/bin/lua
 
 $(LUA):
-	@$(CheckExternal)
+	+@
 
-	+@[ -e openwrt/.config ] || $(OPENWRTMAKE) defconfig
-	+@$(OPENWRTMAKE) tools/install
-	+@$(OPENWRTMAKE) package/lua/host/compile
+	$(CheckExternal)
+
+	[ -e openwrt/.config ] || $(OPENWRTMAKE) defconfig
+	$(OPENWRTMAKE) tools/install
+	$(OPENWRTMAKE) package/lua/host/compile
 
 
 config: $(LUA) FORCE
-	@$(CheckExternal)
-	@$(CheckTarget)
+	+@
+
+	$(CheckExternal)
+	$(CheckTarget)
 	$(foreach conf,site $(patsubst $(GLUON_SITEDIR)/%.conf,%,$(wildcard $(GLUON_SITEDIR)/domains/*.conf)),$(call CheckSite,$(conf)))
 
-	@$(GLUON_CONFIG_VARS) \
+	$(GLUON_CONFIG_VARS) \
 		$(LUA) scripts/target_config.lua '$(GLUON_TARGET)' '$(GLUON_PACKAGES)' \
 		> openwrt/.config
-	+@$(OPENWRTMAKE) defconfig
+	$(OPENWRTMAKE) defconfig
 
-	@$(GLUON_CONFIG_VARS) \
+	$(GLUON_CONFIG_VARS) \
 		$(LUA) scripts/target_config_check.lua '$(GLUON_TARGET)' '$(GLUON_PACKAGES)'
 
 
 all: config
-	@$(GLUON_CONFIG_VARS) \
+	+@
+	$(GLUON_CONFIG_VARS) \
 		$(LUA) scripts/clean_output.lua
-	+@$(OPENWRTMAKE)
-	@$(GLUON_CONFIG_VARS) \
+	$(OPENWRTMAKE)
+	$(GLUON_CONFIG_VARS) \
 		$(LUA) scripts/copy_output.lua '$(GLUON_TARGET)'
 
 clean download: config
 	+@$(OPENWRTMAKE) $@
 
 dirclean: FORCE
-	+@[ -e openwrt/.config ] || $(OPENWRTMAKE) defconfig
-	+@$(OPENWRTMAKE) dirclean
-	@rm -rf $(GLUON_TMPDIR) $(GLUON_OUTPUTDIR)
+	+@
+	[ -e openwrt/.config ] || $(OPENWRTMAKE) defconfig
+	$(OPENWRTMAKE) dirclean
+	rm -rf $(GLUON_TMPDIR) $(GLUON_OUTPUTDIR)
 
 manifest: $(LUA) FORCE
-	@[ '$(GLUON_BRANCH)' ] || (echo 'Please set GLUON_BRANCH to create a manifest.'; false)
-	@echo '$(GLUON_PRIORITY)' | grep -qE '^([0-9]*\.)?[0-9]+$$' || (echo 'Please specify a numeric value for GLUON_PRIORITY to create a manifest.'; false)
-	@$(CheckExternal)
+	@
+	[ '$(GLUON_BRANCH)' ] || (echo 'Please set GLUON_BRANCH to create a manifest.'; false)
+	echo '$(GLUON_PRIORITY)' | grep -qE '^([0-9]*\.)?[0-9]+$$' || (echo 'Please specify a numeric value for GLUON_PRIORITY to create a manifest.'; false)
+	$(CheckExternal)
 
-	@( \
-		echo 'BRANCH=$(GLUON_BRANCH)' && \
-		echo "DATE=$$($(LUA) scripts/rfc3339date.lua)" && \
-		echo 'PRIORITY=$(GLUON_PRIORITY)' && \
-		echo && \
+	(
+		echo 'BRANCH=$(GLUON_BRANCH)'
+		echo "DATE=$$($(LUA) scripts/rfc3339date.lua)"
+		echo 'PRIORITY=$(GLUON_PRIORITY)'
+		echo
 		$(foreach GLUON_TARGET,$(GLUON_TARGETS), \
-			GLUON_SITEDIR='$(GLUON_SITEDIR)' $(LUA) scripts/generate_manifest.lua '$(GLUON_TARGET)' && \
-		) : \
+			GLUON_SITEDIR='$(GLUON_SITEDIR)' $(LUA) scripts/generate_manifest.lua '$(GLUON_TARGET)'; \
+		)
 	) > 'tmp/$(GLUON_BRANCH).manifest.tmp'
 
-	@mkdir -p '$(GLUON_IMAGEDIR)/sysupgrade'
-	@mv 'tmp/$(GLUON_BRANCH).manifest.tmp' '$(GLUON_IMAGEDIR)/sysupgrade/$(GLUON_BRANCH).manifest'
+	mkdir -p '$(GLUON_IMAGEDIR)/sysupgrade'
+	mv 'tmp/$(GLUON_BRANCH).manifest.tmp' '$(GLUON_IMAGEDIR)/sysupgrade/$(GLUON_BRANCH).manifest'
 
 FORCE: ;
 
 .PHONY: FORCE
 .NOTPARALLEL:
+.ONESHELL:
