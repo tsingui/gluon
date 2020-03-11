@@ -1,0 +1,16 @@
+From: David Bauer <mail@david-bauer.net>
+Date: Wed, 11 Mar 2020 01:32:01 +0100
+Subject: libpfring: disable build for Linux 5.4
+
+diff --git a/libs/libpfring/Makefile b/libs/libpfring/Makefile
+index d967c0a78503c313ddc4ccb056bb8e81c9880fb6..ad768b095c355cb2a3a41ba09e8c62b1055ca86d 100644
+--- a/libs/libpfring/Makefile
++++ b/libs/libpfring/Makefile
+@@ -50,6 +50,7 @@ define KernelPackage/pf-ring
+   TITLE:=PF_RING Kernel driver
+   FILES:=$(PKG_BUILD_DIR)/kernel/pf_ring.ko
+   AUTOLOAD:=$(call AutoLoad,90,pf_ring,1)
++  DEPENDS:=@!LINUX_5_4
+   LICENSE:=GPL-2.0-or-later
+ endef
+ 

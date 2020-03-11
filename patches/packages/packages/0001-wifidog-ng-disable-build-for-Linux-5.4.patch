@@ -1,0 +1,17 @@
+From: David Bauer <mail@david-bauer.net>
+Date: Wed, 11 Mar 2020 01:47:22 +0100
+Subject: wifidog-ng: disable build for Linux 5.4
+
+diff --git a/net/wifidog-ng/Makefile b/net/wifidog-ng/Makefile
+index b9d7d764105c0ce6ad3779c3f23f2ca0fe3bc4c7..97b7f58e85b98e8cba7546fcd186fb5aebb8ca04 100644
+--- a/net/wifidog-ng/Makefile
++++ b/net/wifidog-ng/Makefile
+@@ -82,7 +82,7 @@ include $(INCLUDE_DIR)/kernel.mk
+ define KernelPackage/wifidog-ng
+   SUBMENU:=Other modules
+   TITLE:=Kernel module for wifidog-ng
+-  DEPENDS:=+kmod-nf-nat +kmod-ipt-ipset
++  DEPENDS:=+kmod-nf-nat +kmod-ipt-ipset @!LINUX_5_4
+   FILES:=$(PKG_BUILD_DIR)/wifidog-ng.ko
+ endef
+ 
