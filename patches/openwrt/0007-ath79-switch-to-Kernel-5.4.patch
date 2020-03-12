@@ -1,0 +1,22 @@
+From: David Bauer <mail@david-bauer.net>
+Date: Thu, 12 Mar 2020 23:37:36 +0100
+Subject: ath79: switch to Kernel 5.4
+
+Switch to Linux 5.4 to (hopefully) receive some early feedback.
+
+Signed-off-by: David Bauer <mail@david-bauer.net>
+
+diff --git a/target/linux/ath79/Makefile b/target/linux/ath79/Makefile
+index e50ad2297b016807017841718b8c238922478162..2c667de9ab600046ea3b7fb56f633e683f1800fe 100644
+--- a/target/linux/ath79/Makefile
++++ b/target/linux/ath79/Makefile
+@@ -8,8 +8,7 @@ SUBTARGETS:=generic nand tiny
+ 
+ FEATURES:=ramdisk
+ 
+-KERNEL_PATCHVER:=4.19
+-KERNEL_TESTING_PATCHVER:=5.4
++KERNEL_PATCHVER:=5.4
+ 
+ include $(INCLUDE_DIR)/target.mk
+ 
